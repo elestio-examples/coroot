@@ -17,7 +17,7 @@ services:
       - "172.17.0.1:61645:5432"
 
   coroot:
-    image: ghcr.io/coroot/coroot${SOFTWARE_VERSION_TAG}
+    image: ghcr.io/coroot/coroot:${SOFTWARE_VERSION_TAG}
     restart: always
     ports:
       - 172.17.0.1:28485:8080
