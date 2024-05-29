@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: elestio/postgres:16
+    shm_size: 1g
+    restart: always
+    environment:
+      POSTGRES_DB: coroot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${ADMIN_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
+      TS_TUNE_MAX_CONNS: 100
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    ports:
+      - "172.17.0.1:61645:5432"
+
+  coroot:
+    image: ghcr.io/coroot/coroot${SOFTWARE_VERSION_TAG}
+    restart: always
+    ports:
+      - 172.17.0.1:28485:8080
+    command:
+      - "--bootstrap-prometheus-url=http://prometheus:9090"
+      - "--bootstrap-refresh-interval=15s"
+      - "--bootstrap-clickhouse-address=clickhouse:9000"
+      - "--pg-connection-string=postgres://postgres:${ADMIN_PASSWORD}@postgres:5432/coroot?sslmode=disable"
+    depends_on:
+      - clickhouse
+      - prometheus
+      - postgres
+
+  node-agent:
+    image: ghcr.io/coroot/coroot-node-agent
+    restart: always
+    privileged: true
+    pid: "host"
+    volumes:
+      - /sys/kernel/tracing:/sys/kernel/tracing
+      - /sys/kernel/debug:/sys/kernel/debug
+      - /sys/fs/cgroup:/host/sys/fs/cgroup
+    command:
+      - "--collector-endpoint=http://coroot:8080"
+      - "--cgroupfs-root=/host/sys/fs/cgroup"
+
+  prometheus:
+    image: prom/prometheus:v2.45.4
+    restart: always
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+    ports:
+      - "9090:9090"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    ports:
+      - "172.17.0.1:44017:9000"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  pgadmin:
+    image: elestio/pgadmin:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${ADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${ADMIN_PASSWORD}
+      PGADMIN_LISTEN_PORT: 8080
+    ports:
+      - "172.17.0.1:16749:8080"
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json
+
+volumes:
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/prometheus_data
+      o: bind
