@@ -6,10 +6,7 @@ ports:
     targetIP: "172.17.0.1"
     public: true
     path: "/"
-    isAuth: true
-    login: "root"
-    password: "random_password"
-    loginTitle: "Coroot"
+    isAuth: false
   - protocol: "HTTPS"
     targetProtocol: "HTTP"
     listeningPort: "39537"
@@ -82,6 +79,10 @@ lifeCycleConfig:
   postRestoreCommand: "./scripts/postRestore.sh"
   postDeployCommand: "./scripts/postDeploy.sh"
 webUI:
+  - url: "https://[CI_CD_DOMAIN]"
+    label: "Coroot UI"
+    login: "root"
+    password: "[ADMIN_PASSWORD]"
   - url: "https://[CI_CD_DOMAIN]:39537"
     label: "pgAdmin"
     login: "[ADMIN_EMAIL]"

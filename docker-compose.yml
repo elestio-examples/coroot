@@ -19,8 +19,6 @@ services:
   coroot:
     image: ghcr.io/coroot/coroot:${SOFTWARE_VERSION_TAG}
     restart: always
-    ports:
-      - 172.17.0.1:28485:8080
     command:
       - "--bootstrap-prometheus-url=http://prometheus:9090"
       - "--bootstrap-refresh-interval=15s"
@@ -79,6 +77,17 @@ services:
       - "172.17.0.1:16749:8080"
     volumes:
       - ./servers.json:/pgadmin4/servers.json
+
+  nginx:
+    image: nginx
+    ports:
+      - 172.17.0.1:28485:80
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d/:ro
+      - ./.htpasswd:/etc/nginx/.htpasswd:ro
+    restart: always
+    depends_on:
+      - coroot
 
 volumes:
   prometheus_data:
